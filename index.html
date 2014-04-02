@@ -1,0 +1,292 @@
+<html>
+<head>
+<style type="text/css">
+* {
+    margin: 0;
+    padding: 0;
+}
+table {
+    width: 220px;
+    height: 220px;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+tr td {
+    border-bottom: 1px solid black;
+    border-right: 1px solid black;
+    text-align: center;
+    transition: 0.2s ease;
+    overflow: hidden;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+}
+tr td:not(.x):not(.o):hover {
+    background-color: lightblue;
+}
+tr:first-child td {
+    border-top: 1px solid black;
+}
+tr td:first-child {
+    border-left: 1px solid black;
+}
+#tooltip {
+    position: absolute;
+    border: 1px solid black;
+    opacity: 1;
+    border-radius: 3px;
+}
+#table-container {
+    display: inline-block;
+}
+#container {
+    position: fixed;
+    display: inline-block;
+    top: 0;
+    width: 700px;
+    height: 700px;
+    margin-left: 30px;
+}
+.x {
+    background-color: #00ff00;
+}
+.o {
+    background-color: #0000ff;
+}
+.x, .o {
+    cursor: default;
+}
+#clear {
+    margin: 3px;
+    display: block;
+}
+</style>
+<script type="text/javascript" src="http://threejs.org/build/three.min.js"></script>
+<script type="text/javascript">
+</script>
+<script type="text/javascript">
+function main() {
+    var camera, scene, geometry, material1, material2, material, renderer,
+        n = 10, size = 10, r = 2500, deltar = r / 10, oldx = 0, oldy = 0,
+        pos = { x: -n * size / 2, y: -n * size / 2, z : -n * size / 2 },
+        dx = 0, dy = 0, won = false,
+        move = false,
+        cubes = [],
+        container = document.getElementById( "container" ),
+        width = container.clientWidth, height = container.clientHeight,
+        i, j, t, tr, td, tables = [], table;
+    window.dz = 50;
+    function init() {
+        camera = new THREE.PerspectiveCamera( Math.PI * 1.5, width / height, 1, 10000 );
+        camera.position.set( pos.x + n * size / 2, pos.y + n * size / 2, r );
+        scene = new THREE.Scene();
+        scene.add( camera );
+        geometry = new THREE.CubeGeometry( size, size, size );
+        material1 = new THREE.MeshBasicMaterial( {color : 0x00ff00, opacity: 0.9} );
+        material2 = new THREE.MeshBasicMaterial( {color : 0x0000ff, opacity: 0.9} );
+        material = new THREE.MeshBasicMaterial( {color : 0x505050, opacity: 0.2, wireframe: true} );
+        window.material = material;
+        for ( i = 0; i < n; i++ ) {
+            cubes[i] = [];
+            for ( j = 0; j < n; j++ ) {
+                cubes[i][j] = [];
+                for ( t = 0; t < n; t++ ) {
+                    cubes[i][j][t] = new THREE.Mesh( geometry, material );
+                    cubes[i][j][t].position.set( pos.x + i * size, pos.y + j * size, pos.z + t * size );
+                    scene.add( cubes[i][j][t] );
+                }
+            }
+        }
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize( width, height );
+        container.appendChild( renderer.domElement );
+        container.addEventListener( "mouseup", function( e ) {
+            move = false;
+            dx = e.clientX - oldx;
+            dy = e.clientY - oldy;
+            oldx = e.clientX;
+            oldy = e.clientY;
+        } );
+        container.addEventListener( "mousedown", function( e ) {
+            move = true;
+            oldx = e.clientX;
+            oldy = e.clientY;
+        } );
+        container.addEventListener( "mousemove", function( e ) {
+            if ( !move ) {
+                return;
+            }
+            dx = e.clientX - oldx;
+            dy = e.clientY - oldy;
+            rotate( dx, dy );
+            dx = 0; dy = 0;
+            oldx = e.clientX;
+            oldy = e.clientY;
+        } );
+        container.addEventListener( "mousewheel", function( e ) {
+            if ( e.wheelDelta > 0 && r < deltar * 20 ) {
+                r += deltar;
+            }
+            if ( e.wheelDelta  < 0 && r > deltar ) {
+                r -= deltar;
+            }
+        } );
+    }
+    function animate() {
+        rotate( dx, dy );
+        requestAnimationFrame( animate, renderer.domElement );
+        render();
+    }
+    function rotate( y, x ) {
+        camera.rotation.x += x / 100;
+        camera.rotation.y += - y / 100;
+        camera.position.z = r * Math.cos( camera.rotation.x ) * Math.cos( camera.rotation.y );
+        camera.position.y = r * Math.sin( -camera.rotation.x ) * Math.cos( camera.rotation.y );
+        camera.position.x = r * Math.sin( camera.rotation.y );
+    }
+
+    function render() {
+        renderer.render(scene, camera);
+    }
+    init();
+    animate();
+    var body = document.getElementById( "table-container" ),
+        tooltip = document.getElementById( "tooltip" ),
+        values = [],
+        curVal = "x",
+        act = false;
+
+    function ce( element, parent, value, data ) {
+        var el = document.createElement( element ), i;
+        parent.appendChild( el );
+        if ( value !== undefined ) {
+            el.innerHTML = value;
+        }
+        if ( data !== undefined ) {
+            for ( i in data ) {
+                if ( !data.hasOwnProperty( i ) ) {
+                    continue;
+                }
+                el.setAttribute( "data-" + i, data[ i ] );
+            }
+        }
+        return el;
+    }
+    function win( x ) {
+        won = true;
+        alert( "Победили " + ( x === "x" ? "зелёные" : "синие" ) );
+    }
+    function clear() {
+        var i, j, el = body.getElementsByTagName( "td" ), l = el.length;
+        for ( t = 0; t < n; t++ ) {
+            for ( i = 0; i < n; i++ ) {
+                for (j = 0; j < n; j++ ) {
+                    values[t][i][j] = "";
+                    cubes[t][i][j].material = material;
+                }
+            }
+        }
+        for ( i = 0; i < l; i++ ) {
+            el[i].className = "";
+        }
+        curVal = "x";
+        won = false;
+    }
+    document.getElementById( "clear" ).addEventListener( "click", clear );
+    function test( x0, y0, z0 ) {
+        var vectors = [[0, 1, 0], [0, 1, 1], [0, 0, 1], [0, -1, 1], [1, 0, 0],
+                       [1, 1, 0], [1, -1, 0], [1, 0, 1], [1, 0, -1], [1, 1, 1],
+                       [1, 1, -1], [1, -1, -1], [1, -1, 1]],
+            l = vectors.length,
+            x, y, z, dx, dy, dz, count, i;
+        for ( i = 0; i < l; i++ ) {
+            dx = vectors[i][1];
+            dy = vectors[i][2];
+            dz = vectors[i][0];
+            count = 0;
+            x = +x0;
+            y = +y0;
+            z = +z0;
+
+            while ( x < n && x >= 0 && y < n && y >= 0 && z < n && z >= 0 &&
+                    values[z][x][y] === values[z0][x0][y0] ) {
+                count++;
+                x += dx;
+                y += dy;
+                z += dz;
+            }
+            x = +x0 - dx;
+            y = +y0 - dy;
+            z = +z0 - dz;
+            while ( x < n && x >= 0 && y < n && y >= 0 && z < n && z >= 0 &&
+                values[z][x][y] === values[z0][x0][y0] )
+            {
+                count++;
+                x -= dx;
+                y -= dy;
+                z -= dz;
+            }
+            if ( count === 5 ) {
+                win( values[z0][x0][y0] );
+                return;
+            }
+        }
+
+    }
+    for ( t = 0; t < n; t++ ) {
+        tables[t] = ce( "table", body );
+        table = tables[t];
+        body.appendChild( table );
+        values.push( [] );
+        for ( i = 0; i < n; i++ ) {
+            tr = ce( "tr", table );
+            values[t].push( [] );
+            for ( j = 0; j < n; j++ ) {
+                ce( "td", tr, " ", { x : i, y : j, z : t } );
+                values[t][i][j] = "";
+            }
+        }
+    }
+    body.addEventListener( "click", function( e ) {
+        var self = e.target, x, y, z;
+        if ( won ) {
+            return;
+        }
+        if ( self.tagName !== "TD" ) {
+            return;
+        }
+        x = self.getAttribute( "data-x" );
+        y = self.getAttribute( "data-y" );
+        z = self.getAttribute( "data-z" );
+        if ( values[z][x][y] !== "" ) {
+            return;
+        }
+        values[z][x][y] = curVal;
+        self.className = curVal;
+        cubes[x][y][z].material = curVal === "x" ? material1 : material2;
+        test( x, y, z );
+        curVal = ( curVal === "x" ) ? "o" : "x";
+    } );
+    body.addEventListener( "mousemove", function( e ) {
+        var self = e.target, x, y, z;
+        if ( self.tagName !== "TD" ) {
+            tooltip.style.display = "none";
+            return;
+        }
+        x = +self.getAttribute( "data-x" ) + 1;
+        y = +self.getAttribute( "data-y" ) + 1;
+        z = +self.getAttribute( "data-z" ) + 1;
+        tooltip.style.display = "block";
+        tooltip.style.left = e.pageX;
+        tooltip.style.top = e.pageY-25;
+        tooltip.innerHTML = y + ":" + x + ":" + z;
+    } );
+}
+</script></head>
+<body onload="main();">
+<button id="clear">Заново</button>
+<div id="tooltip"></div>
+<div id="table-container"></div>
+<div id="container"></div>
+</body>
+</html>
